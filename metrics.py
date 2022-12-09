@@ -9,6 +9,9 @@ from torchmetrics.functional import auc
 from torchmetrics.functional import precision_recall
 from torchmetrics.functional import auc
 
+# plotting
+import matplotlib.pyplot as plt 
+
 ## Binary Classification
 def bin_class_metrics(pred, target, positive_class = 1):
     conf_mat = ConfusionMatrix(num_classes=2)
@@ -47,6 +50,8 @@ def bin_class_metrics(pred, target, positive_class = 1):
     print("Recall: ", recall)
     print("F1-Score: ", f1score)
     
+    return f1score
+    
 #     roc = ROC(num_classes = 2, pos_label=1)
 #     score_fpr, score_tpr, _ = roc(target, pred)
 #     score_roc_auc = roc_auc_score(target, pred)
@@ -58,7 +63,6 @@ def multiclass_metrics(pred, target, num_classes):
     print("Confusion Matrix (0 in Top Left): ")
     print(cm)
 
-
     metric = MulticlassF1Score(num_classes=num_classes, average='macro')
     f1_score_avg = metric(pred, target)
     print("F1-Score (Average)", f1_score_avg)
@@ -68,6 +72,8 @@ def multiclass_metrics(pred, target, num_classes):
     print("F1-Score (each):")
     for i, f in enumerate(f1_score_each):
         print("Class ", i, ":", f)
+       
+    return f1_score_avg, f1_score_each
         
 def evaluate_model_metrics(model, num_class, dataloader):
     # to store all labels and predictions for f1-score
@@ -94,19 +100,22 @@ def evaluate_model_metrics(model, num_class, dataloader):
     all_pred = torch.LongTensor(all_pred)
     all_label = torch.LongTensor(all_label)
     if num_class == 2:
-        bin_class_metrics(all_pred, all_label, positive_class = 1)
+        f1score = bin_class_metrics(all_pred, all_label, positive_class = 1)
+        return f1_score, 0
     elif num_class > 2:
-        multiclass_metrics(all_pred, all_label, num_class)
-    return all_pred
+        f1_score_avg, f1_score_each = multiclass_metrics(all_pred, all_label, num_class)
+        return f1_score_avg, f1_score_each
 
 def print_metrics(model, model_name, num_classes, train_dl, test_dl):
     print("-----------------------------------------------------------------------------------")
     print(model_name.upper(), " Metrics")
     print("Train")
-    preds_train = evaluate_model_metrics(model, num_classes, train_dl)
+    _1, _2 = evaluate_model_metrics(model, num_classes, train_dl)
 
     print("Test")
-    preds_test = evaluate_model_metrics(model, num_classes, test_dl)
+    f1_score_avg, f1_score_each = evaluate_model_metrics(model, num_classes, test_dl)
+    
+    return f1_score_avg, f1_score_each
 
     print("-----------------------------------------------------------------------------------")
     

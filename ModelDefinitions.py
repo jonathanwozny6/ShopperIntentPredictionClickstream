@@ -1,5 +1,4 @@
 import torch
-import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
@@ -15,7 +14,7 @@ from torch.autograd import Variable
 ###########################################################################
 
 class RNNClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, n_layers = 1):
+    def __init__(self, input_size, hidden_size, output_size, n_layers = 1, dropout = 0, bias = False):
         super(RNNClassifier, self).__init__()
         
         self.hidden_size = hidden_size
@@ -24,7 +23,7 @@ class RNNClassifier(nn.Module):
         
         # input_size might need to be hidden_size as well
         #nonlinearity='relu',
-        self.rnn = torch.nn.RNN(input_size, hidden_size,  batch_first = True, dropout = 0)
+        self.rnn = torch.nn.RNN(input_size, hidden_size,  batch_first = True, bias = bias)
         # MAYBE NEED TO ADD ANOTHER LINEAR LAYER
         self.linear = torch.nn.Linear(hidden_size, output_size)
         
@@ -38,7 +37,8 @@ class RNNClassifier(nn.Module):
         hidden = self._init_hidden(batch_size)
         out, hidden = self.rnn(sequences, hidden) # embedded here for sequence if not commented out
                 
-        out = self.linear(hidden[-1])
+        out = self.drop(hidden[-1])  
+        out = self.linear(out)
     
         return out, hidden
     
@@ -59,8 +59,8 @@ class LSTMClassifier(nn.Module):
         # self.embedding = (input_size, hidden_size)
         
         # input_size might need to be hidden_size as well
-        self.lstm = torch.nn.LSTM(input_size, hidden_size, batch_first = True, dropout = dropout, bias = bias)
-        # MAYBE NEED TO ADD ANOTHER LINEAR LAYER
+        self.lstm = torch.nn.LSTM(input_size, hidden_size, batch_first = True, bias = bias)
+        self.drop = torch.nn.Dropout(dropout)
         self.linear = torch.nn.Linear(hidden_size, output_size)
         
     def forward(self, sequences):
@@ -75,7 +75,8 @@ class LSTMClassifier(nn.Module):
         out, (hidden, cell) = self.lstm(sequences, (hidden, cell)) # embedded here for sequence if not commented out
     
 #         output, hidden = self.lstm(sequences)
-        out = self.linear(hidden[-1])
+        out = self.drop(hidden[-1])  
+        out = self.linear(out)
     
         return out, hidden
     
@@ -97,8 +98,8 @@ class GRUClassifier(nn.Module):
         # self.embedding = (input_size, hidden_size)
         
         # input_size might need to be hidden_size as well
-        self.gru = torch.nn.GRU(input_size, hidden_size, batch_first = True, dropout = dropout, bias = bias)
-        # MAYBE NEED TO ADD ANOTHER LINEAR LAYER
+        self.gru = torch.nn.GRU(input_size, hidden_size, batch_first = True, bias = bias)
+        self.drop = torch.nn.Dropout(dropout)
         self.linear = torch.nn.Linear(hidden_size, output_size)
         
     def forward(self, sequences):
@@ -110,8 +111,8 @@ class GRUClassifier(nn.Module):
         
         hidden = self._init_hidden(batch_size)
         out, hidden = self.gru(sequences, hidden) # embedded here for sequence if not commented out
-            
-        out = self.linear(hidden[-1])
+        out = self.drop(hidden[-1])  
+        out = self.linear(out)
     
         return out, hidden
     

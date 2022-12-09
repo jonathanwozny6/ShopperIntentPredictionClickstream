@@ -8,6 +8,8 @@ from earlystopping import EarlyStopping
 
 import os
 
+import numpy as np
+
 def train_model(model, loss_fn, optimizer, num_epochs, train_dataloader, val_dataloader, patience, path, device, load_best = False):
 
     # to track the training loss as the model trains
@@ -110,9 +112,9 @@ def getDataloaders(train_dataset, test_dataset, batch_size):
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def create_file(model_name, output_size, hidden_size, batch_size, file_name = "/checkpoint.pt"):
+def create_file(model_name, output_size, hidden_size, batch_size, dropout = 0, file_name = "/checkpoint.pt"):
     # create directory and file if does not exist
-    dir_path = "./model_checkpoints/{}/output{}/hidden={}&batch={}".format(model_name, output_size, hidden_size, batch_size)    
+    dir_path = "./model_checkpoints/{}/output{}/hidden={}&batch={}&dropout={}".format(model_name, output_size, hidden_size, batch_size, dropout)    
     isExist = os.path.exists(dir_path)
     if not isExist:
        # Create a new directory because it does not exist
