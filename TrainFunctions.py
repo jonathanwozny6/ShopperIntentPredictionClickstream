@@ -27,21 +27,18 @@ def train_model(model, loss_fn, optimizer, num_epochs, train_dataloader, val_dat
     for epoch in range(num_epochs):  # loop over the dataset multiple times
 
         running_loss = 0.0
+        model.train()
         for i, data in enumerate(train_dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
             inputs = data[0].float().to(device)
-            labels = data[1].type(torch.LongTensor)
-            labels = labels.float().to(device)
+            labels = data[1].float().to(device)
 
             #labels = labels.long() # convert to expected target datatype (Long which is equivalent to int here)
 #             labels = labels.type(torch.LongTensor)
 
             # zero the parameter gradients
             optimizer.zero_grad()
-            
-            if ((epoch == 0) & load_best):
-                model.load_state_dict(torch.load(path))
 
             # forward + backward + optimize
             outputs, h = model(inputs)
@@ -60,9 +57,12 @@ def train_model(model, loss_fn, optimizer, num_epochs, train_dataloader, val_dat
               
             
         # Validation Loss
-        model.eval()
-        for i, data in enumerate(val_dataloader, 0):
-            inputs, labels = data
+        with torch.no_grad():
+            model.eval()
+            for i, data in enumerate(val_dataloader, 0):
+                inputs, labels = data
+                inputs = data[0].float().to(device)
+                labels = data[1].float().to(device)
             
             outputs, h = model(inputs)
             
@@ -104,7 +104,6 @@ def getDataloaders(train_dataset, test_dataset, batch_size):
     train_subset, val_subset = random_split(
         train_dataset, [tr_sz, len(train_dataset) - tr_sz])
 
-    batch_size = 64
     train_dataloader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
@@ -114,20 +113,20 @@ def getDataloaders(train_dataset, test_dataset, batch_size):
 
 def create_file(model_name, output_size, hidden_size, batch_size, dropout = 0, file_name = "/checkpoint.pt"):
     # create directory and file if does not exist
-    dir_path = "./model_checkpoints/{}/output{}/hidden={}&batch={}&dropout={}".format(model_name, output_size, hidden_size, batch_size, dropout)    
+    dir_path = "./model_checkpoints/{}".format(model_name)    
     isExist = os.path.exists(dir_path)
     if not isExist:
        # Create a new directory because it does not exist
        os.makedirs(dir_path)
-    f = open(dir_path + "/checkpoint.pt", 'w')
+    f = open(dir_path + "/output{}&hidden={}&batch={}&dropout={}-checkpoint.pt".format(output_size, hidden_size, batch_size, dropout) , 'w')
     f.close()
-    path = dir_path + "/checkpoint.pt"
+    path = dir_path + "/output{}&hidden={}&batch={}&dropout={}-checkpoint.pt".format(output_size, hidden_size, batch_size, dropout)
     
     return path
 
 def load_data(output_size):
     # datasets and dataloaders
-    data_path = "./cleaned_data"
+    data_path = "/home/awozny/click_data"
     trainset_path = "/train_dataset_{}.pt".format(output_size)
     testset_path = "/test_dataset_{}.pt".format(output_size)
     train_dataset = torch.load(data_path + trainset_path)

@@ -47,8 +47,7 @@ learning_rate = 0.001
 num_epochs = 35
 
 # hyperparameters to tune
-hidden_size = [64, 128, 256]
-batch_size = [32, 64, 128, 256]
+hidden_size = [64, 128]
 dropout = [0, 0.2, 0.3, 0.4]
 
 for ind, Classifier in enumerate(ModelInstantiators):
@@ -71,10 +70,11 @@ for ind, Classifier in enumerate(ModelInstantiators):
 
     # train model on hyperparameters
     for h in hidden_size:
-        for b in batch_size:
             for d in dropout:
-
+                b = 64
+                
                 hyperparams = {"hidden_size": h, "batch_size": b, "dropout": d}
+                print(hyperparams)
                 hyperparams_tot.append(hyperparams)
 
                 # create path to store checkpoints
@@ -84,8 +84,7 @@ for ind, Classifier in enumerate(ModelInstantiators):
                 train_dataloader, val_dataloader, test_dataloader = getDataloaders(train_dataset, test_dataset, b)
 
                 # instantiate model
-                model = Classifier(input_size, h, output_size, n_layers, d, bias).to(device)
-                model = nn.DataParallel(model)
+                model = Classifier(input_size, h, output_size, device, n_layers, d, bias).to(device)
 
                 loss_fn = torch.nn.CrossEntropyLoss() # weight = class_weights
                 torch.set_default_tensor_type(torch.FloatTensor)
@@ -100,33 +99,3 @@ for ind, Classifier in enumerate(ModelInstantiators):
                 model_train_loss_tot.append(model_train_loss)
 
                 print("--- %s seconds ---" % (time.time() - start_time))
-
-    # get all f1 scores
-    f1_score_avg_tot = []
-    f1_score_each_tot = []
-    for m in model_tot:
-        f1_score_avg, f1_score_each = print_metrics(m, model_name, output_size, train_dataloader, test_dataloader)
-        f1_score_avg_tot.append(f1_score_avg)
-        f1_score_each_tot.append(f1_score_each)
-
-    max_f1_score_avg = 0
-    max_ind_avg = 0
-    max_f1_score_each_buy = 0
-    max_ind_each = 0
-    for i, f in enumerate(f1_score_avg_tot):
-        if (f > max_f1_score_avg):
-            max_f1_score_avg = f
-            max_ind_avg = i
-        for j, ff in enumerate(f1_score_each_tot[i]):
-            if (ff > max_f1_score_each_buy):
-                max_f1_score_each_buy = ff
-                max_ind_each = j
-
-    best_hyperparams_avg = hyperparams_tot[max_ind_avg]
-    best_hyperparams_each = hyperparams_tot[max_ind_each]
-
-    print("Best Score Avg F1: ", max_f1_score_avg)
-    print("Best Hyperparams Avg F1: ", best_hyperparams_avg)
-    print("Best Score Each F1: ", max_f1_score_each_buy)
-    print("Best Hyperparams Each F1: ", best_hyperparams_each)
-    print("\n\n")

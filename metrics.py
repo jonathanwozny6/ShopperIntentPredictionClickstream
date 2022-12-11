@@ -9,6 +9,10 @@ from torchmetrics.functional import auc
 from torchmetrics.functional import precision_recall
 from torchmetrics.functional import auc
 
+from sklearn.metrics import f1_score
+from sklearn.metrics import confusion_matrix
+
+
 # plotting
 import matplotlib.pyplot as plt 
 
@@ -56,26 +60,29 @@ def bin_class_metrics(pred, target, positive_class = 1):
 #     score_fpr, score_tpr, _ = roc(target, pred)
 #     score_roc_auc = roc_auc_score(target, pred)
     
+
 ## Multiclass Classification
 def multiclass_metrics(pred, target, num_classes):
-    conf_mat = ConfusionMatrix(num_classes=num_classes)
-    cm = conf_mat(pred, target)
+    cm = confusion_matrix(target, pred)
+#     cm = conf_mat(pred, target)
     print("Confusion Matrix (0 in Top Left): ")
     print(cm)
 
-    metric = MulticlassF1Score(num_classes=num_classes, average='macro')
+#     f1_score_avg = f1_score(target, pred, average='macro')
+    metric = MulticlassF1Score(num_classes, average = 'macro')
     f1_score_avg = metric(pred, target)
     print("F1-Score (Average)", f1_score_avg)
 
-    metric = MulticlassF1Score(num_classes=num_classes, average=None)
+#     f1_score_each = f1_score(target, pred, average="weighted")
+    metric = MulticlassF1Score(num_classes)
     f1_score_each = metric(pred, target)
     print("F1-Score (each):")
-    for i, f in enumerate(f1_score_each):
-        print("Class ", i, ":", f)
-       
+#     for i, f in enumerate(f1_score_each):
+#         print("Class ", i, ":", f)
+    print(f1_score_each)
     return f1_score_avg, f1_score_each
         
-def evaluate_model_metrics(model, num_class, dataloader):
+def evaluate_model_metrics(model, num_class, dataloader, device):
     # to store all labels and predictions for f1-score
     all_pred = []
     all_label = []
@@ -84,6 +91,8 @@ def evaluate_model_metrics(model, num_class, dataloader):
     with torch.no_grad():
         for data in dataloader:
             inputs, labels = data
+            inputs = data[0].float().to(device)
+            labels = data[1].float().to(device)
             # calculate outputs by running images through the network
             outputs, h = model(inputs)
             # the class with the highest energy is what we choose as prediction
@@ -99,6 +108,10 @@ def evaluate_model_metrics(model, num_class, dataloader):
 
     all_pred = torch.LongTensor(all_pred)
     all_label = torch.LongTensor(all_label)
+    
+    all_pred.numpy().astype(int)
+    all_label.numpy().astype(int)
+    
     if num_class == 2:
         f1score = bin_class_metrics(all_pred, all_label, positive_class = 1)
         return f1_score, 0
@@ -106,14 +119,14 @@ def evaluate_model_metrics(model, num_class, dataloader):
         f1_score_avg, f1_score_each = multiclass_metrics(all_pred, all_label, num_class)
         return f1_score_avg, f1_score_each
 
-def print_metrics(model, model_name, num_classes, train_dl, test_dl):
+def print_metrics(model, model_name, num_classes, train_dl, test_dl, device):
     print("-----------------------------------------------------------------------------------")
     print(model_name.upper(), " Metrics")
     print("Train")
-    _1, _2 = evaluate_model_metrics(model, num_classes, train_dl)
+    _1, _2 = evaluate_model_metrics(model, num_classes, train_dl, device)
 
     print("Test")
-    f1_score_avg, f1_score_each = evaluate_model_metrics(model, num_classes, test_dl)
+    f1_score_avg, f1_score_each = evaluate_model_metrics(model, num_classes, test_dl, device)
     
     return f1_score_avg, f1_score_each
 
